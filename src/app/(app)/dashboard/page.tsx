@@ -53,14 +53,13 @@ export default async function DashboardPage({
         eyebrow="Asset intelligence"
         title="Stock condition overview"
         description="A live view of stock condition, maintenance pressure and data confidence."
-        actions={
-          <DashboardFilters
-            properties={properties}
-            buildings={data.filterOptions.buildings}
-            propertyTypes={data.filterOptions.propertyTypes}
-            values={filters}
-          />
-        }
+        // actions={}
+      />
+      <DashboardFilters
+        properties={properties}
+        buildings={data.filterOptions.buildings}
+        propertyTypes={data.filterOptions.propertyTypes}
+        values={filters}
       />
       {!data.recordCount ? (
         <EmptyState
@@ -92,30 +91,30 @@ export default async function DashboardPage({
       <DashboardOverview
         items={[
           {
-          icon: Buildings,
-          label: "Buildings surveyed",
-          value: data.buildings,
-          note: `${data.buildings || 0} with saved records`,
+            icon: Buildings,
+            label: "Buildings surveyed",
+            value: data.buildings,
+            note: `${data.buildings || 0} with saved records`,
           },
           {
-          icon: Buildings,
-          label: "Properties surveyed",
-          value: data.properties,
-          note: `${data.surveyedUnits} flats / units`,
-          tone: "green",
+            icon: Buildings,
+            label: "Properties surveyed",
+            value: data.properties,
+            note: `${data.surveyedUnits} flats / units`,
+            tone: "green",
           },
           {
-          icon: ClipboardText,
-          label: "Assessed records",
-          value: data.recordCount,
-          note: `${data.elements} unique elements`,
+            icon: ClipboardText,
+            label: "Assessed records",
+            value: data.recordCount,
+            note: `${data.elements} unique elements`,
           },
           {
-          icon: ChartBar,
-          label: "Survey coverage",
-          value: `${data.surveyCoverage}%`,
-          note: `${data.completed} completed units · ${data.targetUnits} total`,
-          tone: "green",
+            icon: ChartBar,
+            label: "Survey coverage",
+            value: `${data.surveyCoverage}%`,
+            note: `${data.completed} completed units · ${data.targetUnits} total`,
+            tone: "green",
           },
         ]}
       />
@@ -393,7 +392,10 @@ export default async function DashboardPage({
             </thead>
             <tbody>
               {data.recent.map((record) => (
-                <tr key={record.id} className="border-t border-[var(--line)] transition-colors hover:bg-[var(--surface-muted)]">
+                <tr
+                  key={record.id}
+                  className="border-t border-[var(--line)] transition-colors hover:bg-[var(--surface-muted)]"
+                >
                   <td className="px-6 py-4 text-[var(--ink-muted)]">
                     {formatDate(record.surveyDate)}
                   </td>
