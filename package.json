@@ -1,0 +1,48 @@
+{
+  "name": "stock-condition-survey",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "supabase:push": "bash scripts/deploy-supabase.sh"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "@hookform/resolvers": "5.2.1",
+    "@hugeicons/core-free-icons": "^4.3.0",
+    "@hugeicons/react": "^1.1.10",
+    "@react-pdf/renderer": "4.3.0",
+    "@supabase/ssr": "0.7.0",
+    "@supabase/supabase-js": "2.95.3",
+    "@tanstack/react-table": "8.21.3",
+    "clsx": "2.1.1",
+    "dexie": "4.2.0",
+    "exceljs": "^4.4.0",
+    "framer-motion": "^13.2.0",
+    "next": "15.5.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "react-hook-form": "7.62.0",
+    "tailwind-merge": "3.3.1",
+    "zod": "3.25.76",
+    "zustand": "5.0.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "@tailwindcss/postcss": "4.1.12",
+    "@types/node": "22.18.0",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "eslint": "9.34.0",
+    "eslint-config-next": "15.5.2",
+    "tailwindcss": "4.1.12",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  }
+}

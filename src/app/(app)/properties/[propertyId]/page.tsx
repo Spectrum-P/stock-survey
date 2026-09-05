@@ -1,0 +1,20 @@
+import Link from "next/link";
+import { ArrowRight, Calendar, ClipboardText, Gear, MapPin, Warning } from "@/components/ui/icons";
+import { getProperty, getUnits } from "@/lib/data";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { formatDate } from "@/lib/utils";
+import { StartSurveyButton } from "@/components/properties/start-survey-button";
+import { notFound } from "next/navigation";
+import { ExcelExportButton } from "@/components/records/excel-export";
+
+export default async function PropertyPage({ params }: { params: Promise<{ propertyId: string }> }) {
+  const { propertyId } = await params; const [property, units] = await Promise.all([getProperty(propertyId), getUnits(propertyId)]);
+  if (!property) notFound();
+  return <div className="grid gap-7"><PageHeader title={property.name} description={[property.buildingName, property.propertyType, property.address, property.postcode].filter(Boolean).join(" · ")} actions={<><ExcelExportButton url={`/api/records/export/excel?scope=property&propertyId=${encodeURIComponent(propertyId)}`} label="Export whole property" disabled={!units.some((unit) => Boolean(unit.completedSurveyId))} /><Link href={`/properties/${propertyId}/units`}><Button variant="secondary"><Gear size={18} />Manage units</Button></Link>{units[0] ? <StartSurveyButton propertyId={propertyId} unitId={units[0].id} /> : null}</>} />
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card className="p-5"><MapPin size={21} className="text-[var(--brand)]" /><p className="mt-4 text-xs font-semibold text-[var(--ink-muted)]">Construction year</p><p className="metric-number mt-1 text-2xl font-semibold">{property.constructionYear ?? "Not recorded"}</p></Card><Card className="p-5"><ClipboardText size={21} className="text-[var(--leaf)]" /><p className="mt-4 text-xs font-semibold text-[var(--ink-muted)]">Units surveyed</p><p className="metric-number mt-1 text-2xl font-semibold">{property.surveyedUnits} of {property.units}</p></Card><Card className="p-5"><Calendar size={21} className="text-[var(--brand)]" /><p className="mt-4 text-xs font-semibold text-[var(--ink-muted)]">Active surveys</p><p className="metric-number mt-1 text-2xl font-semibold">{units.filter((unit) => unit.status === "in_progress").length}</p></Card><Card className="p-5"><Warning size={21} className="text-[var(--orange)]" /><p className="mt-4 text-xs font-semibold text-[var(--ink-muted)]">Urgent findings</p><p className="metric-number mt-1 text-2xl font-semibold">{property.urgentFindings}</p></Card></section>
+    <Card className="overflow-hidden"><div className="flex items-center justify-between border-b border-[var(--line)] p-5 sm:px-6"><div><h2 className="text-lg font-semibold">Flats and units</h2><p className="mt-1 text-sm text-[var(--ink-muted)]">Select a unit to continue its latest survey.</p></div><Link href={`/properties/${propertyId}/units`} className="text-sm font-semibold text-[var(--brand)] hover:underline">Manage</Link></div><div className="divide-y divide-[var(--line)]">{units.slice(0, 12).map((unit) => <div key={unit.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-[var(--surface-muted)] sm:px-6"><div><strong className="text-sm">{unit.name}</strong><div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]"><span>{unit.records} elements recorded</span>{unit.lastSurvey ? <span>Last survey {formatDate(unit.lastSurvey)}</span> : null}</div></div><div className="flex items-center gap-3"><StatusBadge status={unit.status} /><ExcelExportButton url={`/api/records/export/excel?scope=unit&propertyId=${encodeURIComponent(propertyId)}&unitId=${encodeURIComponent(unit.id)}`} label="Excel" size="sm" variant="ghost" disabled={!unit.completedSurveyId} /><StartSurveyButton propertyId={propertyId} unitId={unit.id} compact /><ArrowRight size={18} className="hidden text-[var(--ink-muted)] sm:block" /></div></div>)}</div></Card>
+  </div>;
+}

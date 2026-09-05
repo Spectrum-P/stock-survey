@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0e5a7b">
+    <title>Working offline | Stock Condition</title>
+    <style>
+      :root { color: #172b34; background: #f2f5f5; font-family: Aptos, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { display: grid; min-height: 100dvh; margin: 0; place-items: center; padding: 24px; }
+      main { max-width: 30rem; border: 1px solid #cfdddd; border-top: 4px solid #0e5a7b; border-radius: 12px; background: #fff; padding: 32px; }
+      .mark { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 10px; background: #0e5a7b; color: white; font-size: 24px; font-weight: 700; }
+      h1 { margin: 24px 0 10px; font-size: clamp(1.75rem, 8vw, 2.4rem); line-height: 1.08; letter-spacing: -.04em; }
+      p { margin: 0; color: #58707a; line-height: 1.6; }
+      button { margin-top: 24px; min-height: 46px; border: 0; border-radius: 8px; background: #0e5a7b; color: white; cursor: pointer; font: inherit; font-weight: 700; padding: 0 16px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">S</div>
+      <h1>You’re offline</h1>
+      <p>Reconnect to open a new page. Any survey draft you already had open remains safely stored on this device.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
