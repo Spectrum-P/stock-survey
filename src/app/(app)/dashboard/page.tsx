@@ -53,7 +53,6 @@ export default async function DashboardPage({
         eyebrow="Asset intelligence"
         title="Stock condition overview"
         description="A live view of stock condition, maintenance pressure and data confidence."
-        // actions={}
       />
       <DashboardFilters
         properties={properties}
