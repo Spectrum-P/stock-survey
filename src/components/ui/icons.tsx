@@ -54,6 +54,7 @@ function createIcon(icon: IconSvgElement): Icon {
 }
 
 export const Buildings = createIcon(Building01Icon);
+export const Home = createIcon(Home01Icon);
 export const ChartBar = createIcon(BarChartIcon);
 export const ClipboardText = createIcon(ClipboardIcon);
 export const FileText = createIcon(File01Icon);

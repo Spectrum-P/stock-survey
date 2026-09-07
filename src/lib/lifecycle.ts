@@ -17,8 +17,18 @@ export function planningHorizonFor(remainingLife: number): PlanningHorizon {
 export function calculateLifecycle(
   installationYear?: number,
   typicalLifeYears?: number,
-  currentYear = new Date().getFullYear()
+  currentYear = new Date().getFullYear(),
+  suppliedReplacementYear?: number
 ): LifecycleCalculation {
+  if (suppliedReplacementYear) {
+    const remainingLife = suppliedReplacementYear - currentYear;
+    return {
+      age: installationYear ? currentYear - installationYear : typicalLifeYears ? typicalLifeYears - remainingLife : null,
+      remainingLife,
+      replacementYear: suppliedReplacementYear,
+      suggestedHorizon: planningHorizonFor(remainingLife),
+    };
+  }
   if (!installationYear || !typicalLifeYears) {
     return { age: null, remainingLife: null, replacementYear: null, suggestedHorizon: "" };
   }

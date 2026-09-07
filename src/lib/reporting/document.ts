@@ -18,8 +18,20 @@ export const REPORT_NARRATIVE_JSON_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["component", "narrative"],
-        properties: { component: { type: "string", minLength: 1 }, narrative: { type: "string", minLength: 1 } },
+        required: ["component", "narrative", "elements"],
+        properties: {
+          component: { type: "string", minLength: 1 },
+          narrative: { type: "string", minLength: 1 },
+          elements: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["surveyElementId", "narrative"],
+              properties: { surveyElementId: { type: "string", minLength: 1 }, narrative: { type: "string", minLength: 1 } },
+            },
+          },
+        },
       },
     },
     plannedMaintenance: { type: "string", minLength: 1 },
@@ -55,6 +67,36 @@ function numeric(value: unknown): number | undefined {
   return undefined;
 }
 
+function elementNarrativeFromEvidence(element: ReportEvidenceRow, elementFindings: ReportEvidenceRow[], elementName: string) {
+  const statements: string[] = [];
+  const status = String(element.status ?? "").replaceAll("_", " ");
+  if (status === "inaccessible" || status === "not applicable") {
+    statements.push(`${elementName} was recorded as ${status}.`);
+    const reason = element.accessibility_reason ?? element.accessibilityReason;
+    if (typeof reason === "string" && reason.trim()) statements.push(reason.trim());
+    return statements.join(" ");
+  }
+  const construction = element.construction_type ?? element.construction;
+  statements.push(typeof construction === "string" && construction.trim()
+    ? `${elementName} was assessed and recorded as ${construction.trim()}.`
+    : `${elementName} was assessed; its construction was not recorded in the survey data.`);
+  const labels = elementFindings.map((finding) => String(finding.defect_type_label ?? finding.defectType ?? "").trim()).filter(Boolean);
+  const substantiveDefects = labels.filter((label) => label.toLowerCase() !== "no defect observed");
+  if (substantiveDefects.length) statements.push(`The recorded findings were: ${substantiveDefects.join(", ")}.`);
+  else statements.push("No defects were recorded at the time of inspection.");
+  const conditions = [...new Set(elementFindings.map((finding) => condition(finding.condition)).filter(Boolean))];
+  const priorities = [...new Set(elementFindings.map((finding) => priority(finding.priority)).filter(Boolean))];
+  if (conditions.length) statements.push(`Recorded condition rating${conditions.length === 1 ? "" : "s"}: ${conditions.join(", ")}.`);
+  if (priorities.length) statements.push(`Recorded priority rating${priorities.length === 1 ? "" : "s"}: ${priorities.join(", ")}.`);
+  const remainingLife = numeric(element.remaining_life ?? element.remainingLife);
+  const replacementYear = numeric(element.replacement_year ?? element.replacementYear);
+  if (remainingLife !== undefined) statements.push(`The recorded remaining life is ${remainingLife} year${remainingLife === 1 ? "" : "s"}.`);
+  if (replacementYear !== undefined) statements.push(`The recorded replacement year is ${replacementYear}.`);
+  const works = element.recommended_works ?? element.recommendedWorks;
+  if (typeof works === "string" && works.trim()) statements.push(`Recommended works: ${works.trim()}`);
+  return statements.join(" ");
+}
+
 export function fallbackReportDocument(title = "Stock condition report"): ReportDocument {
   return {
     metadata: { title, clientName: "", reportReference: "", reportDate: new Date().toISOString().slice(0, 10), inspectionDates: [], preparedBy: "", checkedBy: "" },
@@ -87,7 +129,7 @@ export function normalizeReportDocument(value: unknown, title = "Stock condition
     component: section.component as string,
     narrative: text(section.narrative),
     elements: rows(section.elements).map((element) => ({
-      surveyElementId: text(element.surveyElementId), element: text(element.element, "Element not recorded"), status: text(element.status, "not recorded"),
+      surveyElementId: text(element.surveyElementId), element: text(element.element, "Element not recorded"), narrative: text(element.narrative) || elementNarrativeFromEvidence(element, rows(element.defects).length ? rows(element.defects) : strings(element.defects).map((defect) => ({ defectType: defect })), text(element.element, "Element not recorded")), status: text(element.status, "not recorded"),
       ...(typeof element.construction === "string" ? { construction: element.construction } : {}),
       ...(condition(element.condition) ? { condition: condition(element.condition) } : {}),
       ...(priority(element.priority) ? { priority: priority(element.priority) } : {}),
@@ -151,14 +193,19 @@ export function buildDeterministicReportDocument(surveys: ReportEvidenceRow[], s
     const component = one(element.component_categories)?.name ?? element.custom_component_name ?? "Custom component";
     grouped.set(component, [...(grouped.get(component) ?? []), element]);
   }
-  const componentSections = [...grouped.entries()].map(([component, elements]) => ({
+  const componentSections = [...grouped.entries()].map(([component, elements]) => {
+    const componentFindings = elements.flatMap((element) => rows(element.defect_findings));
+    const substantiveFindings = componentFindings.filter((finding) => String(finding.defect_type_label ?? "").trim().toLowerCase() !== "no defect observed");
+    return {
     component,
-    narrative: "Information was not available within the survey dataset.",
+    narrative: `${component} includes ${elements.length} assessed element${elements.length === 1 ? "" : "s"}. ${substantiveFindings.length ? `${substantiveFindings.length} recorded defect finding${substantiveFindings.length === 1 ? " was" : "s were"} identified; the element subsections set out the recorded condition, lifecycle and recommended works.` : "No defects were recorded for these elements at the time of inspection; the element subsections set out the available construction and lifecycle evidence."}`,
     elements: elements.map((element) => {
       const elementFindings = rows(element.defect_findings);
+      const elementName = String(one(element.elements)?.name ?? element.custom_element_name ?? "Custom element");
       return {
         surveyElementId: String(element.id),
-        element: String(one(element.elements)?.name ?? element.custom_element_name ?? "Custom element"),
+        element: elementName,
+        narrative: elementNarrativeFromEvidence(element, elementFindings, elementName),
         status: String(element.status ?? "not recorded"),
         construction: element.construction_type ? String(element.construction_type) : undefined,
         condition: condition(elementFindings[0]?.condition),
@@ -175,7 +222,8 @@ export function buildDeterministicReportDocument(surveys: ReportEvidenceRow[], s
         photoIds: rows(element.media).map((item) => String(item.id)),
       };
     }),
-  }));
+  };
+  });
   const surveyors = [...new Set(surveys.map((survey) => one(survey.profiles)?.full_name).filter((name): name is string => typeof name === "string" && !!name.trim()))];
   const inspectionDates = [...new Set(surveys.map((survey) => survey.inspection_date).filter((date): date is string => typeof date === "string"))].sort();
   const estimatedCost = assessedElements.reduce((sum, element) => sum + (numeric(element.estimated_cost) ?? 0), 0);
@@ -211,6 +259,7 @@ export function buildDeterministicReportDocument(surveys: ReportEvidenceRow[], s
       ...(scope.kind !== "portfolio" && firstProperty?.building_name ? { buildingName: String(firstProperty.building_name) } : {}),
       ...(scope.kind !== "portfolio" && firstProperty?.property_type ? { propertyType: String(firstProperty.property_type) } : {}),
       ...(scope.kind !== "portfolio" && numeric(firstProperty?.construction_year) !== undefined ? { constructionYear: numeric(firstProperty.construction_year)! } : {}),
+      ...(scope.kind !== "portfolio" && numeric(firstProperty?.number_of_storeys) !== undefined ? { numberOfStoreys: numeric(firstProperty.number_of_storeys)! } : {}),
       ...(scope.kind === "survey" && firstUnit?.name ? { unit: String(firstUnit.name) } : {}),
       ...(scope.kind === "survey" && firstUnit?.reference ? { unitReference: String(firstUnit.reference) } : {}),
       ...(scope.kind === "survey" && firstUnit?.flat_type ? { flatType: String(firstUnit.flat_type) } : {}),
@@ -234,14 +283,18 @@ export function buildDeterministicReportDocument(surveys: ReportEvidenceRow[], s
 }
 
 export function mergeReportNarrative(base: ReportDocument, narrative: ReportNarrative): ReportDocument {
-  const componentNarratives = new Map(narrative.componentNarratives.map((item) => [item.component, item.narrative]));
+  const componentNarratives = new Map(narrative.componentNarratives.map((item) => [item.component, item]));
   return {
     ...base,
     executiveSummary: narrative.executiveSummary,
     introduction: narrative.introduction,
     methodology: narrative.methodology,
     limitations: narrative.limitations,
-    componentSections: base.componentSections.map((section) => ({ ...section, narrative: componentNarratives.get(section.component) ?? section.narrative })),
+    componentSections: base.componentSections.map((section) => {
+      const generated = componentNarratives.get(section.component);
+      const elementNarratives = new Map(generated?.elements.map((item) => [item.surveyElementId, item.narrative]) ?? []);
+      return { ...section, narrative: generated?.narrative ?? section.narrative, elements: section.elements.map((element) => ({ ...element, narrative: elementNarratives.get(element.surveyElementId) ?? element.narrative })) };
+    }),
     plannedMaintenance: narrative.plannedMaintenance,
     recommendations: narrative.recommendations,
     dataQualityIssues: [...new Set([...base.dataQualityIssues, ...narrative.dataQualityIssues])],
@@ -252,8 +305,12 @@ export function mergeGeneratedSection(current: ReportDocument, generated: Report
   if (!sectionKey || !(sectionKey in current)) return generated;
   if (sectionKey === "metadata" || sectionKey === "stockProfile" || sectionKey === "conditionSummary" || sectionKey === "prioritySummary" || sectionKey === "lifecycleSchedule" || sectionKey === "photoSchedule") return current;
   if (sectionKey === "componentSections") {
-    const generatedNarratives = new Map(generated.componentSections.map((section) => [section.component, section.narrative]));
-    return { ...current, componentSections: current.componentSections.map((section) => ({ ...section, narrative: generatedNarratives.get(section.component) ?? section.narrative })) };
+    const generatedNarratives = new Map(generated.componentSections.map((section) => [section.component, section]));
+    return { ...current, componentSections: current.componentSections.map((section) => {
+      const refreshed = generatedNarratives.get(section.component);
+      const elementNarratives = new Map(refreshed?.elements.map((element) => [element.surveyElementId, element.narrative]) ?? []);
+      return { ...section, narrative: refreshed?.narrative ?? section.narrative, elements: section.elements.map((element) => ({ ...element, narrative: elementNarratives.get(element.surveyElementId) ?? element.narrative })) };
+    }) };
   }
   return { ...current, [sectionKey]: generated[sectionKey as keyof ReportDocument] } as ReportDocument;
 }

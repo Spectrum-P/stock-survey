@@ -9,6 +9,9 @@ describe("lifecycle calculations", () => {
     expect(calculateLifecycle(2000, 20, 2026).remainingLife).toBe(-6);
     expect(planningHorizonFor(-6)).toBe("Overdue");
   });
+  it("uses a supplied replacement year in preference to an installation-derived year", () => {
+    expect(calculateLifecycle(2010, 40, 2026, 2032)).toEqual({ age: 16, remainingLife: 6, replacementYear: 2032, suggestedHorizon: "1-10 years" });
+  });
   it("maps every planning boundary", () => {
     expect(planningHorizonFor(10)).toBe("1-10 years"); expect(planningHorizonFor(11)).toBe("11-20 years"); expect(planningHorizonFor(21)).toBe("21-30 years"); expect(planningHorizonFor(31)).toBe("Beyond 30 years");
   });
