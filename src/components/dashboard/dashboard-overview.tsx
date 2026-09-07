@@ -11,8 +11,8 @@ type OverviewItem = {
 
 export function DashboardOverview({ items }: { items: OverviewItem[] }) {
   return (
-    <Card className="overflow-hidden">
-      <section className="grid md:grid-cols-4 grid-col-2" aria-label="Stock overview metrics">
+    <Card className="overflow-hidden rounded-2xl">
+      <section className="grid md:grid-cols-4 grid-cols-2" aria-label="Stock overview metrics">
         {items.map(
           (
             { icon: IconComponent, label, value, note, tone = "brand" },
@@ -26,16 +26,18 @@ export function DashboardOverview({ items }: { items: OverviewItem[] }) {
                   : "text-[var(--brand)]";
             const divider =
               index < 2 ? "border-b border-[var(--line)] lg:border-b-0" : "";
+            const horizontalDivider =
+              index === 0 || index === items.length - 2 ? "border-r border-[var(--line)] lg:border-b-0" : "";
             const verticalDivider =
-              index !== items.length 
+              index < items.length - 1
                 ? "lg:border-r lg:border-[var(--line)]"
                 : "";
             return (
               <div
                 key={label}
-                className={`min-h-36 px-5 py-6 sm:px-7 lg:py-8 ${divider} ${verticalDivider}`}
+                className={`min-h-36 px-5 py-6 sm:px-7 lg:py-8 ${horizontalDivider} ${divider} ${verticalDivider}`}
               >
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink-muted)]">
+                <div className="flex items-start gap-2 text-sm font-medium text-[var(--ink-muted)]">
                   <IconComponent size={18} aria-hidden />
                   {label}
                 </div>

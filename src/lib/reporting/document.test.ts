@@ -49,12 +49,21 @@ describe("report document construction", () => {
     const base = buildDeterministicReportDocument([survey], { kind: "property", propertyId: "property-1" }, "Example Housing");
     const merged = mergeReportNarrative(base, {
       executiveSummary: "Recorded defects require planned action.", introduction: "This report covers the property.", methodology: "Stored visual survey evidence was reviewed.",
-      limitations: ["Visual inspection only."], componentNarratives: [{ component: "External Envelope", narrative: "The windows require planned renewal." }],
+      limitations: ["Visual inspection only."], componentNarratives: [{ component: "External Envelope", narrative: "The windows require planned renewal.", elements: [{ surveyElementId: "element-1", narrative: "The recorded window defects require planned renewal." }] }],
       plannedMaintenance: "Programme window works.", recommendations: ["Confirm the renewal programme."], dataQualityIssues: [],
     });
     expect(merged.executiveSummary).toContain("planned action");
     expect(merged.componentSections[0].elements[0].estimatedCost).toBe(4200);
     expect(merged.componentSections[0].narrative).toContain("windows");
+    expect(merged.componentSections[0].elements[0].narrative).toContain("window defects");
+  });
+
+  it("writes a professional assessment statement for an element with no defect", () => {
+    const cleanSurvey = structuredClone(survey);
+    cleanSurvey.survey_elements[0].defect_findings = [{ defect_type_label: "No defect observed", condition: "A", priority: "4" }];
+    const document = buildDeterministicReportDocument([cleanSurvey], { kind: "survey", surveyId: "survey-1" }, "Example Housing");
+    expect(document.componentSections[0].elements[0].narrative).toContain("No defects were recorded at the time of inspection.");
+    expect(document.componentSections[0].narrative).toContain("No defects were recorded");
   });
 
   it("regenerates component narrative without replacing the editable fact snapshot", () => {

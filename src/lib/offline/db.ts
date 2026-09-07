@@ -13,6 +13,7 @@ export interface OfflineMedia {
   contentType: string;
   blob: Blob;
   status: "queued" | "uploading" | "uploaded" | "failed";
+  error?: string;
   createdAt: string;
 }
 
@@ -89,11 +90,14 @@ export async function syncOutbox() {
   return { synced, conflicts };
 }
 
-export async function syncQueuedMedia() {
+export async function syncQueuedMedia(surveyElementId?: string) {
   const db = offlineDb();
-  if (!db || !navigator.onLine) return { synced: 0 };
-  const queued = await db.media.where("status").anyOf("queued", "failed").toArray();
+  if (!db || !navigator.onLine) return { synced: 0, failed: 0, errors: [] as string[] };
+  const pending = await db.media.where("status").anyOf("queued", "failed").toArray();
+  const queued = surveyElementId ? pending.filter((item) => item.surveyElementId === surveyElementId) : pending;
   let synced = 0;
+  let failed = 0;
+  const errors: string[] = [];
   for (const item of queued) {
     await db.media.update(item.id, { status: "uploading" });
     const form = new FormData();
@@ -103,11 +107,14 @@ export async function syncQueuedMedia() {
     try {
       const response = await authenticatedFetch("/api/media/upload", { method: "POST", body: form });
       if (!response.ok) throw new Error(await response.text());
-      await db.media.update(item.id, { status: "uploaded" });
+      await db.media.update(item.id, { status: "uploaded", error: undefined });
       synced += 1;
-    } catch {
-      await db.media.update(item.id, { status: "failed" });
+    } catch (error) {
+      failed += 1;
+      const message = error instanceof Error ? error.message : "Upload failed";
+      errors.push(message);
+      await db.media.update(item.id, { status: "failed", error: message });
     }
   }
-  return { synced };
+  return { synced, failed, errors };
 }

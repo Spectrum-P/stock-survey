@@ -1,9 +1,9 @@
 import type { PropertySummary, ReportSummary, SurveyRecord } from "@/lib/types";
 
 export const demoProperties: PropertySummary[] = [
-  { id: "11111111-1111-4111-8111-111111111111", name: "Bishop Hall", buildingName: "Bishop Hall", propertyType: "Supported housing", address: "Kingston Lane, Uxbridge", postcode: "UB8 3PH", constructionYear: 1998, units: 25, surveyedUnits: 17, inProgressUnits: 5, completedUnits: 12, urgentFindings: 3 },
-  { id: "22222222-2222-4222-8222-222222222222", name: "Meadow Court", buildingName: "Meadow Court", propertyType: "General needs", address: "Cleveland Road, Uxbridge", postcode: "UB8 2EG", constructionYear: 2007, units: 18, surveyedUnits: 8, inProgressUnits: 0, completedUnits: 8, urgentFindings: 1 },
-  { id: "33333333-3333-4333-8333-333333333333", name: "Lancaster House", buildingName: "Lancaster House", propertyType: "General needs", address: "Station Road, Hayes", postcode: "UB3 4BX", constructionYear: 1986, units: 32, surveyedUnits: 29, inProgressUnits: 0, completedUnits: 29, urgentFindings: 5 }
+  { id: "11111111-1111-4111-8111-111111111111", name: "Bishop Hall", buildingName: "Bishop Hall", propertyType: "Flat", addressLine1: "Kingston Lane", town: "Uxbridge", address: "Kingston Lane, Uxbridge", postcode: "UB8 3PH", constructionYear: 1998, numberOfStoreys: 3, units: 25, surveyedUnits: 17, inProgressUnits: 5, completedUnits: 12, urgentFindings: 3 },
+  { id: "22222222-2222-4222-8222-222222222222", name: "Meadow Court", buildingName: "Meadow Court", propertyType: "Flat", addressLine1: "Cleveland Road", town: "Uxbridge", address: "Cleveland Road, Uxbridge", postcode: "UB8 2EG", constructionYear: 2007, numberOfStoreys: 3, units: 18, surveyedUnits: 8, inProgressUnits: 0, completedUnits: 8, urgentFindings: 1 },
+  { id: "33333333-3333-4333-8333-333333333333", name: "Lancaster House", buildingName: "Lancaster House", propertyType: "Flat", addressLine1: "Station Road", town: "Hayes", address: "Station Road, Hayes", postcode: "UB3 4BX", constructionYear: 1986, numberOfStoreys: 4, units: 32, surveyedUnits: 29, inProgressUnits: 0, completedUnits: 29, urgentFindings: 5 }
 ];
 
 export const demoRecords: SurveyRecord[] = [

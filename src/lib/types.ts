@@ -3,16 +3,18 @@ export type ElementStatus = "not_started" | "partial" | "completed" | "not_appli
 export type ConditionRating = "A" | "B" | "C" | "D";
 export type PriorityRating = "1" | "2" | "3" | "4";
 export type PlanningHorizon = "1-10 years" | "11-20 years" | "21-30 years" | "Beyond 30 years" | "Overdue";
+export type PropertyType = "House" | "Bungalow" | "Flat" | "Maisonette" | "Park home";
 
 export interface PropertyInput {
   name: string;
   buildingName?: string;
-  propertyType?: string;
+  propertyType: PropertyType;
   addressLine1: string;
   addressLine2?: string;
   town: string;
   postcode: string;
   constructionYear?: number;
+  numberOfStoreys?: number;
   reference?: string;
 }
 
@@ -59,6 +61,7 @@ export interface SurveyElementDraft {
   lifeReference: string;
   remainingLife?: number;
   replacementYear?: number;
+  replacementYearProvided?: boolean;
   planningHorizon: PlanningHorizon | "";
   planningOverrideReason: string;
   estimatedCost?: number;
@@ -125,6 +128,7 @@ export interface ComponentReportSection {
   elements: Array<{
     surveyElementId: string;
     element: string;
+    narrative: string;
     status: string;
     construction?: string;
     condition?: ConditionRating;
@@ -147,7 +151,7 @@ export interface ReportNarrative {
   introduction: string;
   methodology: string;
   limitations: string[];
-  componentNarratives: Array<{ component: string; narrative: string }>;
+  componentNarratives: Array<{ component: string; narrative: string; elements: Array<{ surveyElementId: string; narrative: string }> }>;
   plannedMaintenance: string;
   recommendations: string[];
   dataQualityIssues: string[];
@@ -240,9 +244,14 @@ export interface PropertySummary {
   name: string;
   buildingName?: string;
   propertyType?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  town: string;
   address: string;
   postcode: string;
   constructionYear?: number;
+  numberOfStoreys?: number;
+  reference?: string;
   units: number;
   surveyedUnits: number;
   inProgressUnits?: number;

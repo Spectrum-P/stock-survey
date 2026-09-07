@@ -9,6 +9,38 @@ test("demo dashboard and flat workspace are navigable", async ({ page }) => {
   await expect(page.getByText("Element coverage")).toBeVisible();
 });
 
+test("mobile dashboard filters open in a modal and apply together", async ({ page }, testInfo) => {
+  test.skip((testInfo.project.use.viewport?.width ?? 1280) >= 768, "Mobile-only responsive interaction");
+  await page.goto("/dashboard");
+  await expect(page.getByRole("button", { name: "Filters" })).toBeVisible();
+  await page.getByRole("button", { name: "Filters" }).click();
+  const dialog = page.getByRole("dialog", { name: "Filters" });
+  await expect(dialog).toBeVisible();
+  await dialog.locator("select").first().selectOption({ label: "Bishop Hall" });
+  await dialog.getByRole("button", { name: /Apply filters/ }).click();
+  await expect(page).toHaveURL(/propertyId=11111111-1111-4111-8111-111111111111/);
+  await expect(dialog).toBeHidden();
+});
+
+test("mobile report-job filters open in a modal", async ({ page }, testInfo) => {
+  test.skip((testInfo.project.use.viewport?.width ?? 1280) >= 768, "Mobile-only responsive interaction");
+  await page.goto("/reports/jobs");
+  await page.getByRole("button", { name: "Filters" }).click();
+  const dialog = page.getByRole("dialog", { name: "Filter by status" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("link", { name: "Failed" }).click();
+  await expect(page).toHaveURL(/status=failed/);
+});
+
+test("property cards expose edit and delete actions", async ({ page }) => {
+  await page.goto("/properties");
+  await expect(page.getByRole("link", { name: "Edit Bishop Hall" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete Bishop Hall" })).toBeVisible();
+  await page.getByRole("link", { name: "Edit Bishop Hall" }).click();
+  await expect(page).toHaveURL(/\/properties\/11111111-1111-4111-8111-111111111111\/edit$/);
+  await expect(page.getByRole("heading", { name: "Property details" })).toBeVisible();
+});
+
 test("six-stage element form retains flat context", async ({ page }) => {
   await page.goto("/surveys/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/element/Render");
   await expect(page.getByRole("heading", { name: "Render assessment" })).toBeVisible();
@@ -19,9 +51,16 @@ test("six-stage element form retains flat context", async ({ page }) => {
   await expect(page.getByText("Record construction", { exact: true })).toBeVisible();
 });
 
-test("records filters and detail drawer work", async ({ page }) => {
+test("records filters and detail drawer work", async ({ page }, testInfo) => {
   await page.goto("/records");
-  await page.getByPlaceholder("Search property, flat or defect").fill("fan inoperative");
+  if ((testInfo.project.use.viewport?.width ?? 1280) < 768) {
+    await page.getByRole("button", { name: "Filters" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filters" });
+    await dialog.getByPlaceholder("Search property, flat or defect").fill("fan inoperative");
+    await dialog.getByRole("button", { name: /Show 1 result/ }).click();
+  } else {
+    await page.getByPlaceholder("Search property, flat or defect").fill("fan inoperative");
+  }
   await expect(page.getByText("Fan inoperative").first()).toBeVisible();
   await page.getByText("Fan inoperative").first().click();
   await expect(page.getByRole("heading", { name: "Extract Ventilation" })).toBeVisible();

@@ -3,6 +3,7 @@ import {
   Buildings,
   ChartBar,
   ClipboardText,
+  Home,
   Warning,
 } from "@/components/ui/icons";
 import { getDashboardData, getProperties } from "@/lib/data";
@@ -90,7 +91,7 @@ export default async function DashboardPage({
       <DashboardOverview
         items={[
           {
-            icon: Buildings,
+            icon: Home,
             label: "Buildings surveyed",
             value: data.buildings,
             note: `${data.buildings || 0} with saved records`,

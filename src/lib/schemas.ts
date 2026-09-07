@@ -3,12 +3,13 @@ import { z } from "zod";
 export const propertySchema = z.object({
   name: z.string().min(2, "Enter a property name"),
   buildingName: z.string().optional(),
-  propertyType: z.string().optional(),
+  propertyType: z.enum(["House", "Bungalow", "Flat", "Maisonette", "Park home"]),
   addressLine1: z.string().min(3, "Enter the first address line"),
   addressLine2: z.string().optional(),
   town: z.string().min(2, "Enter a town or city"),
   postcode: z.string().min(5, "Enter a valid postcode"),
   constructionYear: z.coerce.number().int().min(1600).max(new Date().getFullYear()).optional(),
+  numberOfStoreys: z.coerce.number().int().min(1, "Enter at least one storey").max(200).optional(),
   reference: z.string().optional()
 });
 
@@ -47,7 +48,8 @@ export const surveyElementSchema = z.object({
   typicalLifeYears: z.coerce.number().positive().optional(),
   lifeReference: z.string(),
   remainingLife: z.number().optional(),
-  replacementYear: z.number().optional(),
+  replacementYear: z.coerce.number().int().min(1600).max(2600).optional(),
+  replacementYearProvided: z.boolean().optional(),
   planningHorizon: z.enum(["1-10 years", "11-20 years", "21-30 years", "Beyond 30 years", "Overdue", ""]),
   planningOverrideReason: z.string(),
   estimatedCost: z.coerce.number().min(0).optional(),
@@ -103,7 +105,7 @@ export const reportDocumentSchema = z.object({
     component: z.string(),
     narrative: z.string(),
     elements: z.array(z.object({
-      surveyElementId: z.string(), element: z.string(), status: z.string(),
+      surveyElementId: z.string(), element: z.string(), narrative: z.string().default(""), status: z.string(),
       construction: z.string().optional(), condition: z.enum(["A", "B", "C", "D"]).optional(),
       priority: z.enum(["1", "2", "3", "4"]).optional(), remainingLife: z.number().optional(),
       replacementYear: z.number().optional(), planningHorizon: z.enum(["Overdue", "1-10 years", "11-20 years", "21-30 years", "Beyond 30 years"]).optional(), defects: z.array(z.string()),
@@ -123,7 +125,7 @@ export const reportNarrativeSchema = z.object({
   introduction: z.string().min(1),
   methodology: z.string().min(1),
   limitations: z.array(z.string()),
-  componentNarratives: z.array(z.object({ component: z.string().min(1), narrative: z.string().min(1) }).strict()),
+  componentNarratives: z.array(z.object({ component: z.string().min(1), narrative: z.string().min(1), elements: z.array(z.object({ surveyElementId: z.string().min(1), narrative: z.string().min(1) }).strict()) }).strict()),
   plannedMaintenance: z.string().min(1),
   recommendations: z.array(z.string()),
   dataQualityIssues: z.array(z.string()),

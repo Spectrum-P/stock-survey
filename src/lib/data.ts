@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PaginatedResult, PropertySummary, ReportJobSummary, ReportSummary, SurveyElementDraft, SurveyRecord } from "@/lib/types";
 import { reportErrorMessage } from "@/lib/reporting/queue";
 import { catalog, type CatalogElement } from "@/lib/catalog";
-import { averageLifespan } from "@/lib/lifecycle";
 import { demoElementStatuses } from "@/lib/demo-data";
 
 export async function getProperties(): Promise<PropertySummary[]> {
@@ -13,7 +12,7 @@ export async function getProperties(): Promise<PropertySummary[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("properties")
-    .select("id,name,building_name,property_type,address_line_1,town,postcode,construction_year,units(id,flat_type,floor,surveys(id,status,survey_elements(defect_findings(priority))))")
+    .select("id,name,building_name,property_type,address_line_1,address_line_2,town,postcode,construction_year,number_of_storeys,reference,units(id,flat_type,floor,surveys(id,status,inspection_date,survey_elements(defect_findings(priority))))")
     .eq("archived", false)
     .order("name");
   if (error || !data) {
@@ -32,9 +31,14 @@ export async function getProperties(): Promise<PropertySummary[]> {
       name: property.name,
       buildingName: property.building_name ?? property.name,
       propertyType: property.property_type ?? undefined,
+      addressLine1: property.address_line_1,
+      addressLine2: property.address_line_2 ?? undefined,
+      town: property.town,
       address: [property.address_line_1, property.town].filter(Boolean).join(", "),
       postcode: property.postcode,
       constructionYear: property.construction_year ?? undefined,
+      numberOfStoreys: property.number_of_storeys ?? undefined,
+      reference: property.reference ?? undefined,
       units: units.length,
       surveyedUnits,
       inProgressUnits,
@@ -57,7 +61,7 @@ export async function getSurveyCatalog(): Promise<CatalogElement[]> {
 
 export async function getProperty(id: string) {
   const properties = await getProperties();
-  return properties.find((property) => property.id === id) ?? properties[0];
+  return properties.find((property) => property.id === id) ?? null;
 }
 
 export async function getUnits(propertyId: string) {
@@ -412,7 +416,7 @@ export async function getSurveyElementDraft(surveyId: string, elementName: strin
   const isCustomElement = Boolean(data.custom_element_name);
   const findings = (data.defect_findings ?? []) as Array<Record<string, unknown> & { media?: Array<{ id: string }> }>;
   const lifeReference = data.life_reference ?? (isCustomElement ? "" : fallback.lifespanLabel);
-  return { id: data.id, surveyId, category: data.component_categories?.name ?? data.custom_component_name ?? fallback.category, element: resolvedElementName, categoryId: data.category_id ?? undefined, elementId: data.element_id ?? undefined, customComponentName: data.custom_component_name ?? undefined, customElementName: data.custom_element_name ?? undefined, accessibility: data.accessibility, accessibilityReason: data.accessibility_reason ?? "", constructionType: data.construction_type ?? "", constructionNotes: data.construction_notes ?? "", installationYear: data.installation_year ?? undefined, typicalLifeYears: isCustomElement ? data.typical_life_years ?? undefined : averageLifespan(lifeReference, data.typical_life_years ?? fallback.lifespan), lifeReference, remainingLife: data.remaining_life ?? undefined, replacementYear: data.replacement_year ?? undefined, planningHorizon: data.planning_horizon ?? "", planningOverrideReason: data.planning_override_reason ?? "", estimatedCost: data.estimated_cost ?? undefined, costBasis: data.cost_basis ?? "", defects: findings.map((finding) => ({ id: String(finding.id), defectType: String(finding.defect_type_label ?? ""), cause: String(finding.cause ?? ""), condition: finding.condition as SurveyElementDraft["defects"][number]["condition"], priority: finding.priority as SurveyElementDraft["defects"][number]["priority"], notes: String(finding.notes ?? ""), photoIds: finding.media?.map((item) => item.id) ?? [] })), recommendedWorks: data.recommended_works ?? "", generalNotes: data.general_notes ?? "", accessLimitations: data.access_limitations ?? "", furtherInvestigation: data.further_investigation ?? false, mediaIds: (data.media ?? []).map((item: { id: string }) => item.id), status: data.status, version: data.version, updatedAt: data.updated_at };
+  return { id: data.id, surveyId, category: data.component_categories?.name ?? data.custom_component_name ?? fallback.category, element: resolvedElementName, categoryId: data.category_id ?? undefined, elementId: data.element_id ?? undefined, customComponentName: data.custom_component_name ?? undefined, customElementName: data.custom_element_name ?? undefined, accessibility: data.accessibility, accessibilityReason: data.accessibility_reason ?? "", constructionType: data.construction_type ?? "", constructionNotes: data.construction_notes ?? "", installationYear: data.installation_year ?? undefined, typicalLifeYears: isCustomElement ? data.typical_life_years ?? undefined : data.typical_life_years ?? fallback.lifespan, lifeReference, remainingLife: data.remaining_life ?? undefined, replacementYear: data.replacement_year ?? undefined, replacementYearProvided: data.replacement_year_provided ?? false, planningHorizon: data.planning_horizon ?? "", planningOverrideReason: data.planning_override_reason ?? "", estimatedCost: data.estimated_cost ?? undefined, costBasis: data.cost_basis ?? "", defects: findings.map((finding) => ({ id: String(finding.id), defectType: String(finding.defect_type_label ?? ""), cause: String(finding.cause ?? ""), condition: finding.condition as SurveyElementDraft["defects"][number]["condition"], priority: finding.priority as SurveyElementDraft["defects"][number]["priority"], notes: String(finding.notes ?? ""), photoIds: finding.media?.map((item) => item.id) ?? [] })), recommendedWorks: data.recommended_works ?? "", generalNotes: data.general_notes ?? "", accessLimitations: data.access_limitations ?? "", furtherInvestigation: data.further_investigation ?? false, mediaIds: (data.media ?? []).map((item: { id: string }) => item.id), status: data.status, version: data.version, updatedAt: data.updated_at };
 }
 
 export async function getSurveyNavigation(surveyId: string) {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { ReportJobsTable } from "@/components/reports/report-jobs-table";
 import { RunReportJobsButton } from "@/components/reports/run-report-jobs-button";
+import { ReportJobFilters } from "@/components/reports/report-job-filters";
 
 const statuses = ["all", "queued", "processing", "failed", "completed"];
 
@@ -18,7 +19,7 @@ export default async function ReportJobsPage({ searchParams }: { searchParams: P
   return <div className="space-y-6">
     <PageHeader eyebrow="Report operations" title="Report jobs" description="Monitor queued generation work, inspect failures, and manually start or retry jobs." actions={<div className="flex gap-2"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 text-sm font-semibold" href="/reports">Back to reports</Link><RunReportJobsButton disabled={!worker.ready} /></div>} />
     <Card className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold">Worker status</p><p className="mt-1 text-sm text-[var(--ink-muted)]">{worker.message}</p></div><Badge tone={worker.ready ? "green" : "orange"}>{worker.ready ? "Ready" : "Configuration required"}</Badge></Card>
-    <div className="flex flex-wrap gap-2">{statuses.map((item) => <Link key={item} href={`/reports/jobs?status=${item}&page=1`} className={`rounded-full px-3 py-1.5 text-sm font-semibold ${(!status && item === "all") || status === item ? "bg-[var(--brand)] text-white" : "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-muted)]"}`}>{item[0].toUpperCase() + item.slice(1)}</Link>)}</div>
+    <ReportJobFilters currentStatus={status ?? "all"} />
     {jobs.items.length ? <ReportJobsTable jobs={jobs.items} workerReady={worker.ready} /> : <Card className="p-8 text-center"><p className="font-semibold">No report jobs found</p><p className="mt-2 text-sm text-[var(--ink-muted)]">Jobs will appear here after a report is generated.</p></Card>}
     <Pagination basePath="/reports/jobs" page={jobs.page} pageCount={jobs.pageCount} total={jobs.total} label="jobs" params={{ status: status ?? "all" }} />
   </div>;

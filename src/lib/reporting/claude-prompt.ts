@@ -15,6 +15,8 @@ Evidence and safety rules:
 - Do not state statutory non-compliance, legal breaches, RICS approval or standards compliance unless directly supported by the dataset.
 - Flag contradictions, duplicates, missing fields, inconsistent terminology, outliers and unreconciled totals as data-quality issues.
 - Treat surveyor-entered condition, priority, defect, recommendation, remaining life and comments as professional inputs. Flag conflicts for review instead of silently changing them.
+- Return a detailed narrative for every supplied component and every supplied element ID. Each element narrative must describe its recorded construction, observed condition and defects, lifecycle position, and works where that evidence exists.
+- An element with no defect is still a reportable assessment. State professionally that it was assessed and that no defects were recorded at the time of inspection, then describe any available construction and lifecycle evidence.
 
 Report structure:
 1. Executive Summary
