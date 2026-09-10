@@ -64,7 +64,7 @@ export async function processReportJob(jobId: string) {
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
     const headers: Record<string, string> = {};
     if (process.env.ANTHROPIC_WORKSPACE_ID) headers["anthropic-workspace-id"] = process.env.ANTHROPIC_WORKSPACE_ID;
-    const anthropic = new Anthropic({ apiKey, defaultHeaders: headers, maxRetries: 2, timeout: 90_000 });
+    const anthropic = new Anthropic({ apiKey, defaultHeaders: headers, maxRetries: 2 });
     logReportEvent("info", "claude.request_started", { requestId, reportId: job.report_id, model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", inputCharacters: JSON.stringify(input).length });
     // Run the schema through Anthropic's strict transformer as well as keeping
     // explicit additionalProperties:false on every object in our source schema.
