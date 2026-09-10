@@ -35,7 +35,7 @@ Set `NEXT_PUBLIC_DEMO_MODE=true` when running the local Playwright suite or when
 4. Run `supabase/seed.sql`.
 5. Enable email/password authentication and set the Site URL plus allowed redirect URLs for `/auth/callback` (for local development, `http://localhost:3000/auth/callback`; add the production URL too).
 6. Copy the project URL and publishable key to `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-7. Add `ANTHROPIC_API_KEY`. `ANTHROPIC_WORKSPACE_ID` is optional and should only be set when the key can access multiple Claude workspaces. Optionally override `ANTHROPIC_MODEL` and `REPORT_MAX_OUTPUT_TOKENS` (defaults to `16000`).
+7. Add `ANTHROPIC_API_KEY`. `ANTHROPIC_WORKSPACE_ID` is optional and should only be set when the key can access multiple Claude workspaces. Optionally override `ANTHROPIC_MODEL`.
 8. Add a non-empty server-only `SUPABASE_SERVICE_ROLE_KEY` and `REPORT_WORKER_SECRET`. The service role is used only by the report worker; never expose either value to the browser.
 
 Report generation emits structured JSON events to the Next.js server log. Filter for

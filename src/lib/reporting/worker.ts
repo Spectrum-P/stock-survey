@@ -70,8 +70,9 @@ export async function processReportJob(jobId: string) {
     // explicit additionalProperties:false on every object in our source schema.
     // This prevents the provider from treating any nested object as open-ended.
     const strictFormat = jsonSchemaOutputFormat(REPORT_NARRATIVE_JSON_SCHEMA);
-    const configuredMaxTokens = Number(process.env.REPORT_MAX_OUTPUT_TOKENS ?? 16_000);
-    const maxTokens = Number.isInteger(configuredMaxTokens) && configuredMaxTokens > 0 ? configuredMaxTokens : 16_000;
+    // The Messages API requires max_tokens. Use Sonnet 4.6's full output
+    // allowance so the application does not impose a smaller report limit.
+    const maxTokens = 64_000;
     const response = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", max_tokens: maxTokens, temperature: 0.1,
       system: `${STOCK_CONDITION_SYSTEM_PROMPT}\nReturn only JSON matching the supplied narrative schema. Write narrative only; preserve all stored surveyor facts and deterministic tables. Do not add facts.`,
