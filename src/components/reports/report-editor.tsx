@@ -140,7 +140,7 @@ export function ReportEditor({ reportId, initialStatus = "generating", initialGe
         </div>
       </div>
     </Card>
-    <div className="min-h-[760px] print:min-h-0"><div className="mb-3 flex items-center justify-between print:hidden"><p className="eyebrow">Print preview</p><div className="flex gap-2"><Button variant="secondary" size="sm" onClick={() => window.print()}><Printer size={16} />Print</Button><a href={status === "approved" ? `/api/reports/${reportId}/pdf` : printUrl} target="_blank" rel="noreferrer"><Button variant="secondary" size="sm"><DownloadSimple size={16} />{status === "approved" ? "Download PDF" : "Preview PDF"}</Button></a></div></div><PrintPreview document={reportDocument} draft={status !== "approved"} title={reportTitle} photoUrls={photoUrls} /></div>
+    <div className="min-h-[760px] print:min-h-0"><div className="mb-3 flex items-center justify-between print:hidden"><p className="eyebrow">Print preview</p><div className="flex flex-wrap justify-end gap-2"><Button variant="secondary" size="sm" onClick={() => window.print()}><Printer size={16} />Print</Button><a href={status === "approved" ? `/api/reports/${reportId}/pdf` : printUrl} target="_blank" rel="noreferrer"><Button variant="secondary" size="sm"><DownloadSimple size={16} />{status === "approved" ? "Download PDF" : "Preview PDF"}</Button></a><a href={status === "approved" ? `/api/reports/${reportId}/docx` : `/api/reports/${reportId}/docx?draft=1`}><Button variant="secondary" size="sm"><DownloadSimple size={16} />Download Word</Button></a></div></div><PrintPreview document={reportDocument} draft={status !== "approved"} title={reportTitle} photoUrls={photoUrls} /></div>
   </div>;
 }
 

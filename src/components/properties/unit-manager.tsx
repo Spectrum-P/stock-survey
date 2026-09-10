@@ -51,7 +51,7 @@ export function UnitManager({ propertyId }: { propertyId: string }) {
         <motion.div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.form
             onSubmit={submit}
-            className="w-full max-w-lg rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6"
+            className="w-full max-w-2xl rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8"
             initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }}
           >
             <div className="flex items-start justify-between">
@@ -71,7 +71,7 @@ export function UnitManager({ propertyId }: { propertyId: string }) {
                 <X />
               </Button>
             </div>
-            <div className="mt-6 grid gap-5 sm:grid-cols-3">
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <Field label="Name prefix">
                 <Input
                   value={prefix}
