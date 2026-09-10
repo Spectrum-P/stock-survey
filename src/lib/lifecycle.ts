@@ -20,7 +20,7 @@ export function calculateLifecycle(
   currentYear = new Date().getFullYear(),
   suppliedReplacementYear?: number
 ): LifecycleCalculation {
-  if (suppliedReplacementYear) {
+  if (suppliedReplacementYear !== undefined && Number.isFinite(suppliedReplacementYear)) {
     const remainingLife = suppliedReplacementYear - currentYear;
     return {
       age: installationYear ? currentYear - installationYear : typicalLifeYears ? typicalLifeYears - remainingLife : null,

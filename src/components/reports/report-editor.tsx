@@ -38,6 +38,7 @@ export function ReportEditor({ reportId, initialStatus = "generating", initialGe
   const [activeSection, setActiveSection] = useState<keyof ReportDocument>("executiveSummary");
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [structuredError, setStructuredError] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     const response = await authenticatedFetch(`/api/reports/${reportId}`);
@@ -55,9 +56,10 @@ export function ReportEditor({ reportId, initialStatus = "generating", initialGe
     const hasDocument = body.document && typeof body.document === "object" && !Array.isArray(body.document) && Object.keys(body.document as object).length > 0;
     const parsedDocument = reportDocumentSchema.safeParse(body.document);
     setDocument(hasDocument ? parsedDocument.success ? parsedDocument.data : normalizeReportDocument(body.document, typeof body.title === "string" ? body.title : "Stock condition report") : null);
+    setLoaded(true);
   }, [reportId]);
 
-  useEffect(() => { load().catch((err) => setError(err instanceof Error ? err.message : "Could not load report")); }, [load]);
+  useEffect(() => { load().catch((err) => { setError(err instanceof Error ? err.message : "Could not load report"); setLoaded(true); }); }, [load]);
   useEffect(() => {
     const ids = document?.photoSchedule?.filter((photo) => photo.included).map((photo) => photo.mediaId) ?? [];
     if (!ids.length) { setPhotoUrls({}); return; }
@@ -119,6 +121,7 @@ export function ReportEditor({ reportId, initialStatus = "generating", initialGe
 
   const generationActive = ["queued", "preparing", "generating", "assembling"].includes(generationStatus);
   if (generationActive) return <Card className="p-6"><div className="flex items-start gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--blue-soft)] text-[var(--brand)]"><SpinnerGap className="animate-spin" size={22} /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{propertyName} · {unitName}</p><p className="mt-1 text-sm text-[var(--ink-muted)]">{currentStep || "Preparing report"}</p></div><Badge tone="blue">{generationStatus}</Badge></div><div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"><div className="h-full rounded-full bg-[var(--brand)] transition-all" style={{ width: `${Math.max(3, progress)}%` }} /></div><div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--ink-muted)]"><span>{progress}% complete · This page refreshes automatically.</span><Link href="/reports/jobs" className="font-semibold text-[var(--brand)]">View report jobs</Link></div></div></div></Card>;
+  if (!loaded) return <Card className="p-6"><div className="flex items-center gap-3 text-sm text-[var(--ink-muted)]"><SpinnerGap className="animate-spin" size={20} />Loading saved report…</div></Card>;
   if (!reportDocument) return <Card className="space-y-4 p-6"><div className="flex items-start gap-3"><WarningCircle className="text-[var(--orange)]" size={22} /><div><p className="font-semibold">The report document is not available</p><p className="mt-1 text-sm text-[var(--ink-muted)]">{error || "Retry generation from the report jobs page."}</p></div></div><div className="flex gap-2"><Button onClick={regenerate} disabled={busy}>{busy ? "Queueing" : "Retry generation"}</Button><Link href="/reports/jobs" className="inline-flex min-h-11 items-center rounded-lg border border-[var(--line)] px-4 text-sm font-semibold">View report jobs</Link></div></Card>;
 
   return <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(460px,1.05fr)] print:block">

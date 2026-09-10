@@ -12,7 +12,7 @@ export function UnitManager({ propertyId }: { propertyId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [prefix, setPrefix] = useState("Flat");
-  const [start, setStart] = useState(1);
+  const [start, setStart] = useState("1");
   const [count, setCount] = useState(1);
   const [flatType, setFlatType] = useState("");
   const [floor, setFloor] = useState("");
@@ -79,12 +79,11 @@ export function UnitManager({ propertyId }: { propertyId: string }) {
                   required
                 />
               </Field>
-              <Field label="Start number">
+              <Field label="First flat / unit number" helper="Numbers and letters are accepted, for example 20, 20A or B12.">
                 <Input
-                  type="number"
-                  min="1"
                   value={start}
-                  onChange={(event) => setStart(Number(event.target.value))}
+                  onChange={(event) => setStart(event.target.value.toUpperCase())}
+                  pattern="[A-Za-z0-9]+"
                   required
                 />
               </Field>
@@ -102,8 +101,7 @@ export function UnitManager({ propertyId }: { propertyId: string }) {
               <Field label="Floor"><Input value={floor} onChange={(event) => setFloor(event.target.value)} placeholder="Ground floor" /></Field>
             </div>
             <p className="mt-4 rounded-xl bg-[var(--surface-muted)] p-3 text-sm text-[var(--ink-muted)]">
-              Creates {count} unit{count === 1 ? "" : "s"}, starting with{" "}
-              {prefix} {String(start).padStart(2, "0")}.
+              {count === 1 ? <>Creates <strong>{prefix} {start || "…"}</strong>.</> : <>Creates {count} numbered units, starting with <strong>{prefix} {start || "…"}</strong>.</>}
             </p>
             {error ? (
               <p
