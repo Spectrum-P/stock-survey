@@ -30,6 +30,7 @@ import {
   Mail01Icon,
   Menu01Icon,
   Moon02Icon,
+  Notification01Icon,
   PencilEdit01Icon,
   PoundIcon,
   PrinterIcon,
@@ -88,6 +89,7 @@ export const MagnifyingGlass = createIcon(Search01Icon);
 export const Envelope = createIcon(Mail01Icon);
 export const Lock = createIcon(LockIcon);
 export const Moon = createIcon(Moon02Icon);
+export const Bell = createIcon(Notification01Icon);
 export const PencilSimple = createIcon(PencilEdit01Icon);
 export const Plus = createIcon(Add01Icon);
 export const Gear = createIcon(Settings01Icon);

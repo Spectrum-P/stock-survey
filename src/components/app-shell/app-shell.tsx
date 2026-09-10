@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/app-shell/theme-toggle";
 import { ConnectivityStatus } from "@/components/app-shell/connectivity";
 import { ServiceWorkerRegistration } from "@/components/app-shell/service-worker-registration";
+import { PushNotificationToggle } from "@/components/app-shell/push-notification-toggle";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { Drawer } from "@/components/ui/drawer";
@@ -150,6 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <ConnectivityStatus />
+            <PushNotificationToggle />
             <ThemeToggle />
             <div
               className="grid size-9 place-items-center rounded-lg bg-[var(--surface-muted)] text-xs font-bold text-[var(--brand)]"

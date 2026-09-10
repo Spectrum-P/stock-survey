@@ -37,6 +37,7 @@ Set `NEXT_PUBLIC_DEMO_MODE=true` when running the local Playwright suite or when
 6. Copy the project URL and publishable key to `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 7. Add `ANTHROPIC_API_KEY`. `ANTHROPIC_WORKSPACE_ID` is optional and should only be set when the key can access multiple Claude workspaces. Optionally override `ANTHROPIC_MODEL`.
 8. Add a non-empty server-only `SUPABASE_SERVICE_ROLE_KEY` and `REPORT_WORKER_SECRET`. The service role is used only by the report worker; never expose either value to the browser.
+9. To enable report-ready push notifications, generate VAPID keys with `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and a `VAPID_SUBJECT` such as `mailto:admin@example.com`. Apply the Supabase migrations before enabling notifications.
 
 Report generation emits structured JSON events to the Next.js server log. Filter for
 `[reports.generate]` to follow a request by its `requestId`; events cover validation,

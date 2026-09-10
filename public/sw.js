@@ -23,3 +23,25 @@ self.addEventListener("fetch", (event) => {
     return response;
   })));
 });
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try { payload = event.data?.json() ?? {}; } catch { payload = { body: event.data?.text() }; }
+  event.waitUntil(self.registration.showNotification(payload.title ?? "Report ready", {
+    body: payload.body ?? "Your stock condition report is ready to review.",
+    icon: "/icons/stock-condition-192.svg",
+    badge: "/icons/stock-condition-192.svg",
+    tag: payload.reportId ? `report-${payload.reportId}` : "report-ready",
+    data: { url: payload.url ?? "/reports" },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url ?? "/reports", self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
+    const existing = clients.find((client) => client.url === target);
+    if (existing) return existing.focus();
+    return self.clients.openWindow(target);
+  }));
+});

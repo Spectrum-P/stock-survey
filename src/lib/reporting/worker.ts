@@ -5,6 +5,7 @@ import { reportDocumentSchema, reportNarrativeSchema } from "@/lib/schemas";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { STOCK_CONDITION_SYSTEM_PROMPT } from "@/lib/reporting/claude-prompt";
 import { logReportEvent } from "@/lib/logger";
+import { notifyReportReady } from "@/lib/push-notifications";
 import { buildDeterministicReportDocument, mergeGeneratedSection, mergeReportNarrative, REPORT_NARRATIVE_JSON_SCHEMA, type ReportScope } from "@/lib/reporting/document";
 
 /* The Supabase client is intentionally used without generated database types in
@@ -73,12 +74,13 @@ export async function processReportJob(jobId: string) {
     // The Messages API requires max_tokens. Use Sonnet 4.6's full output
     // allowance so the application does not impose a smaller report limit.
     const maxTokens = 64_000;
-    const response = await anthropic.messages.create({
+    const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", max_tokens: maxTokens, temperature: 0.1,
       system: `${STOCK_CONDITION_SYSTEM_PROMPT}\nReturn only JSON matching the supplied narrative schema. Write narrative only; preserve all stored surveyor facts and deterministic tables. Do not add facts.`,
       messages: [{ role: "user", content: JSON.stringify({ evidence: input, deterministicDocument }) }],
       output_config: { format: { type: "json_schema", schema: strictFormat.schema } },
-    } as unknown as Anthropic.MessageCreateParams) as Anthropic.Message;
+    } as unknown as Anthropic.MessageStreamParams);
+    const response = await stream.finalMessage() as Anthropic.Message;
     const text = response.content.filter((item) => item.type === "text").map((item) => item.text).join("\n");
     let parsed: unknown = null;
     let parseError: string | undefined;
@@ -112,7 +114,7 @@ export async function processReportJob(jobId: string) {
     const generatedDocument = parsedNarrative.success
       ? mergeReportNarrative(deterministicDocument, parsedNarrative.data)
       : { ...deterministicDocument, dataQualityIssues: [...new Set([...deterministicDocument.dataQualityIssues, "The generated narrative could not be validated; this report uses the stored survey evidence without AI narrative enrichment."])] };
-    const { data: existingReport } = await supabase.from("reports").select("structured_content").eq("id", job.report_id).maybeSingle();
+    const { data: existingReport } = await supabase.from("reports").select("structured_content,created_by").eq("id", job.report_id).maybeSingle();
     const existingDocument = reportDocumentSchema.safeParse(existingReport?.structured_content);
     const document = existingDocument.success ? mergeGeneratedSection(existingDocument.data, generatedDocument, scope.sectionKey) : generatedDocument;
     logReportEvent("info", "claude.response_received", { requestId, reportId: job.report_id, providerRequestId: response.id, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, contentCharacters: text.length });
@@ -130,6 +132,9 @@ export async function processReportJob(jobId: string) {
     await supabase.from("reports").update({ status: "draft", generation_status: "ready", review_status: "draft", progress: 100, current_step: null, error_message: null, generation_completed_at: new Date().toISOString(), updated_at: new Date().toISOString(), draft_content: JSON.stringify(document) }).eq("id", job.report_id);
     await supabase.from("report_generation_runs").update({ status: "completed", completed_steps: 3, current_step: null, error: null, completed_at: new Date().toISOString(), provider_request_ids: [response.id], token_usage: response.usage, events: [{ at: new Date().toISOString(), event: "worker.completed", durationMs: Date.now() - startedAt }] }).eq("id", job.run_id);
     await supabase.from("report_generation_jobs").update({ status: "completed", completed_at: new Date().toISOString(), locked_at: null, last_error: null }).eq("id", job.id);
+    await notifyReportReady(supabase as unknown as Parameters<typeof notifyReportReady>[0], { requestId, reportId: job.report_id, userId: existingReport?.created_by, title: document.metadata.title }).catch((error) => {
+      logReportEvent("error", "push.failed", { requestId, reportId: job.report_id, error: error instanceof Error ? error.message : String(error) });
+    });
     logReportEvent("info", "report.completed", { requestId, reportId: job.report_id, durationMs: Date.now() - startedAt });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Report generation failed";
