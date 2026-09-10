@@ -70,26 +70,34 @@ export async function processReportJob(jobId: string) {
     // explicit additionalProperties:false on every object in our source schema.
     // This prevents the provider from treating any nested object as open-ended.
     const strictFormat = jsonSchemaOutputFormat(REPORT_NARRATIVE_JSON_SCHEMA);
-    const response = await anthropic.messages.create({
+    const response = await anthropic.messages.parse({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", max_tokens: 7000, temperature: 0.1,
       system: `${STOCK_CONDITION_SYSTEM_PROMPT}\nReturn only JSON matching the supplied narrative schema. Write narrative only; preserve all stored surveyor facts and deterministic tables. Do not add facts.`,
       messages: [{ role: "user", content: JSON.stringify({ evidence: input, deterministicDocument }) }],
-      output_config: { format: { type: "json_schema", schema: strictFormat.schema } },
-    } as unknown as Anthropic.MessageCreateParams) as Anthropic.Message;
+      output_config: { format: strictFormat },
+    });
     const text = response.content.filter((item) => item.type === "text").map((item) => item.text).join("\n");
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch { parsed = null; }
+    const parsed: unknown = response.parsed_output;
     const parsedNarrative = reportNarrativeSchema.safeParse(parsed);
     if (!parsedNarrative.success) {
-      await supabase.from("reports").update({ structured_content: deterministicDocument, draft_content: JSON.stringify(deterministicDocument), model_response: { provider: response, parsed, validation: parsedNarrative.error.flatten() }, updated_at: new Date().toISOString() }).eq("id", job.report_id);
-      throw new Error("Claude returned JSON that did not match the report narrative schema");
+      logReportEvent("error", "claude.response_validation_failed", {
+        requestId,
+        reportId: job.report_id,
+        providerRequestId: response.id,
+        model: response.model,
+        stopReason: response.stop_reason,
+        validationIssues: parsedNarrative.error.issues,
+        contentCharacters: text.length,
+      });
     }
-    const generatedDocument = mergeReportNarrative(deterministicDocument, parsedNarrative.data);
+    const generatedDocument = parsedNarrative.success
+      ? mergeReportNarrative(deterministicDocument, parsedNarrative.data)
+      : { ...deterministicDocument, dataQualityIssues: [...new Set([...deterministicDocument.dataQualityIssues, "The generated narrative could not be validated; this report uses the stored survey evidence without AI narrative enrichment."])] };
     const { data: existingReport } = await supabase.from("reports").select("structured_content").eq("id", job.report_id).maybeSingle();
     const existingDocument = reportDocumentSchema.safeParse(existingReport?.structured_content);
     const document = existingDocument.success ? mergeGeneratedSection(existingDocument.data, generatedDocument, scope.sectionKey) : generatedDocument;
     logReportEvent("info", "claude.response_received", { requestId, reportId: job.report_id, providerRequestId: response.id, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, contentCharacters: text.length });
-    await supabase.from("reports").update({ generation_status: "assembling", progress: 80, current_step: "Assembling report", title: document.metadata.title, structured_content: document, draft_content: document.executiveSummary, model_response: { provider: response, narrative: parsedNarrative.data }, model: response.model, updated_at: new Date().toISOString() }).eq("id", job.report_id);
+    await supabase.from("reports").update({ generation_status: "assembling", progress: 80, current_step: "Assembling report", title: document.metadata.title, structured_content: document, draft_content: document.executiveSummary, model_response: parsedNarrative.success ? { provider: response, narrative: parsedNarrative.data } : { provider: response, parsed, validation: parsedNarrative.error.flatten() }, model: response.model, updated_at: new Date().toISOString() }).eq("id", job.report_id);
     const sectionRows = [
       ["metadata", "Report metadata", document.metadata], ["executive_summary", "Executive summary", document.executiveSummary], ["introduction", "Introduction", document.introduction],
       ["methodology", "Methodology", document.methodology], ["limitations", "Scope and limitations", document.limitations], ["stock_profile", "Stock profile", document.stockProfile],
@@ -117,6 +125,13 @@ export async function processReportJob(jobId: string) {
       await supabase.from("report_generation_runs").update({ status: "failed", error: { message }, completed_at: new Date().toISOString(), events: [{ at: new Date().toISOString(), event: "worker.failed", message }] }).eq("id", job.run_id);
       await supabase.from("report_generation_jobs").update({ status: "failed", last_error: { message } }).eq("id", job.id);
     }
-    logReportEvent("error", "report.failed", { requestId, reportId: job.report_id, error: message, durationMs: Date.now() - startedAt });
+    logReportEvent("error", "report.failed", {
+      requestId,
+      reportId: job.report_id,
+      error: message,
+      errorName: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack : undefined,
+      durationMs: Date.now() - startedAt,
+    });
   }
 }
