@@ -70,16 +70,34 @@ export async function processReportJob(jobId: string) {
     // explicit additionalProperties:false on every object in our source schema.
     // This prevents the provider from treating any nested object as open-ended.
     const strictFormat = jsonSchemaOutputFormat(REPORT_NARRATIVE_JSON_SCHEMA);
-    const response = await anthropic.messages.parse({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", max_tokens: 7000, temperature: 0.1,
+    const configuredMaxTokens = Number(process.env.REPORT_MAX_OUTPUT_TOKENS ?? 16_000);
+    const maxTokens = Number.isInteger(configuredMaxTokens) && configuredMaxTokens > 0 ? configuredMaxTokens : 16_000;
+    const response = await anthropic.messages.create({
+      model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6", max_tokens: maxTokens, temperature: 0.1,
       system: `${STOCK_CONDITION_SYSTEM_PROMPT}\nReturn only JSON matching the supplied narrative schema. Write narrative only; preserve all stored surveyor facts and deterministic tables. Do not add facts.`,
       messages: [{ role: "user", content: JSON.stringify({ evidence: input, deterministicDocument }) }],
-      output_config: { format: strictFormat },
-    });
+      output_config: { format: { type: "json_schema", schema: strictFormat.schema } },
+    } as unknown as Anthropic.MessageCreateParams) as Anthropic.Message;
     const text = response.content.filter((item) => item.type === "text").map((item) => item.text).join("\n");
-    const parsed: unknown = response.parsed_output;
+    let parsed: unknown = null;
+    let parseError: string | undefined;
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : String(error);
+      logReportEvent("error", "claude.response_parse_failed", {
+        requestId,
+        reportId: job.report_id,
+        providerRequestId: response.id,
+        model: response.model,
+        stopReason: response.stop_reason,
+        maxTokens,
+        parseError,
+        contentCharacters: text.length,
+      });
+    }
     const parsedNarrative = reportNarrativeSchema.safeParse(parsed);
-    if (!parsedNarrative.success) {
+    if (!parsedNarrative.success && !parseError) {
       logReportEvent("error", "claude.response_validation_failed", {
         requestId,
         reportId: job.report_id,
@@ -97,7 +115,7 @@ export async function processReportJob(jobId: string) {
     const existingDocument = reportDocumentSchema.safeParse(existingReport?.structured_content);
     const document = existingDocument.success ? mergeGeneratedSection(existingDocument.data, generatedDocument, scope.sectionKey) : generatedDocument;
     logReportEvent("info", "claude.response_received", { requestId, reportId: job.report_id, providerRequestId: response.id, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens, contentCharacters: text.length });
-    await supabase.from("reports").update({ generation_status: "assembling", progress: 80, current_step: "Assembling report", title: document.metadata.title, structured_content: document, draft_content: document.executiveSummary, model_response: parsedNarrative.success ? { provider: response, narrative: parsedNarrative.data } : { provider: response, parsed, validation: parsedNarrative.error.flatten() }, model: response.model, updated_at: new Date().toISOString() }).eq("id", job.report_id);
+    await supabase.from("reports").update({ generation_status: "assembling", progress: 80, current_step: "Assembling report", title: document.metadata.title, structured_content: document, draft_content: document.executiveSummary, model_response: parsedNarrative.success ? { provider: response, narrative: parsedNarrative.data } : { provider: response, parsed, parseError, validation: parsedNarrative.error.flatten() }, model: response.model, updated_at: new Date().toISOString() }).eq("id", job.report_id);
     const sectionRows = [
       ["metadata", "Report metadata", document.metadata], ["executive_summary", "Executive summary", document.executiveSummary], ["introduction", "Introduction", document.introduction],
       ["methodology", "Methodology", document.methodology], ["limitations", "Scope and limitations", document.limitations], ["stock_profile", "Stock profile", document.stockProfile],
